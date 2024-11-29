@@ -1,113 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { View, Alert, Button } from 'react-native';
-import { useStripe } from "@stripe/stripe-react-native";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
-import { db } from "../firebase";
-import { useNavigation } from "@react-navigation/native";
+import { StyleSheet, Text, View } from 'react-native'
+import React from 'react'
 
-const API_URL = "http://10.243.14.134:8081";
-export default function CheckoutScreen({ route }) {
-  const { totalCost, itemName } = route.params;
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
-  const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
-  const fetchPaymentSheetParams = async () => {
-    console.log('Total Cost:', totalCost); // Debug value
- 
-    const amountInCents = Math.round(totalCost * 100); // Convert dollars to cents
-    if (isNaN(amountInCents) || amountInCents <= 0) {
-      console.error('Invalid amount:', amountInCents);
-      Alert.alert('Invalid amount for payment'); // User feedback
-      return;
-    }
- 
-    const response = await fetch(`${API_URL}/payment-sheet`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: amountInCents,
-      }),
-    });
- 
-    const { paymentIntent, ephemeralKey, customer } = await response.json();
-    console.log('Payment Details:', { customer, ephemeralKey, paymentIntent, totalCost });
- 
-    // Save the payment details in Firestore under "Payment" collection
-    await addDoc(collection(db, 'Payment'), {
-      customerId: customer,
-      ephemeralKey,
-      paymentIntent,
-      amountPaid: totalCost,
-      timestamp: Timestamp.now(),
-    });
- 
-    return { paymentIntent, ephemeralKey, customer };
-  };
- 
-  const initializePaymentSheet = async () => {
-    try {
-      console.log("Initializing Payment Sheet...");
- 
-      const paymentParams = await fetchPaymentSheetParams();
-      if (!paymentParams) {
-        console.error("Failed to fetch payment sheet parameters.");
-        return; // Exit early if paymentParams is invalid
-      }
- 
-      const { paymentIntent, ephemeralKey, customer } = paymentParams;
- 
-      console.log("Payment Sheet Parameters:", { paymentIntent, ephemeralKey, customer });
- 
-      const { error } = await initPaymentSheet({
-        customerId: customer,
-        customerEphemeralKeySecret: ephemeralKey,
-        paymentIntentClientSecret: paymentIntent,
-        merchantDisplayName: 'Social Garden',
-      });
- 
-      if (error) {
-        console.error("Error initializing payment sheet:", error);
-        Alert.alert("Payment Initialization Failed", error.message);
-        return;
-      }
- 
-      console.log("Payment Sheet successfully initialized.");
-      setLoading(true);
-    } catch (error) {
-      console.error("Error initializing payment sheet:", error);
-      Alert.alert("Initialization Error", "Failed to initialize payment sheet.");
-    }
-  };
- 
- 
-  const openPaymentSheet = async () => {
-    const { error } = await presentPaymentSheet();
- 
-    if (error) {
-      Alert.alert(`Error code: ${error.code}`, error.message);
-
-    } else {
-      Alert.alert('Success', 'Your order is confirmed!');
-      navigation.navigate('Main');
-
-    }
-  };
- 
-  useEffect(() => {
-    initializePaymentSheet();
-    console.log(`Item Name: ${itemName}, Total Cost: ${totalCost}`);
-  }, []);
- 
+const CheckoutScreen = () => {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Button
-        title="Checkout"
-        disabled={!loading}
-        onPress={openPaymentSheet}
-      />
+    <View>
+      <Text style={styles.social}>If you want to check out payment Functionality and its details, Please reach Social Garden booth.</Text>
     </View>
-  );
+  )
 }
- 
+
+export default CheckoutScreen
+
+const styles = StyleSheet.create({
+  social:{
+    alignContent: 'center',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    marginTop: 20,
+    textAlign: 'center'
+  }
+})

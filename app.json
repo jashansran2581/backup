@@ -26,7 +26,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyDRfjB105J3TH1lyVqN_ICFnVw6qc1hDrg"
         }
-      }
+      },
+      "package": "com.jashansran2581.socialgardenyopaiz2pwrrunhchxpn"
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -17,6 +17,7 @@ import {
   KeyboardAvoidingView, 
   Platform 
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Importing Ionicons
 import { auth, db } from '../firebase';
 
 const MessagesScreen = ({ route }) => {
@@ -53,14 +54,14 @@ const MessagesScreen = ({ route }) => {
 
   const renderMessage = ({ item }) => (
     <View style={item.sender === currentUserEmail ? styles.userMessage : styles.ownerMessage}>
-      <Text>{item.message}</Text>
+      <Text style={{ color: 'white' }}>{item.message}</Text>
     </View>
   );
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <FlatList
         ref={flatListRef}
@@ -76,10 +77,16 @@ const MessagesScreen = ({ route }) => {
           onChangeText={setMessage}
           style={styles.input}
           placeholder="Type your message..."
+          placeholderTextColor="#888"
         />
-        <Pressable onPress={sendMessage}>
-          <Text style={styles.sendButton}>Send</Text>
+        <Pressable
+          onPress={sendMessage}
+          style={styles.sendButton}
+          disabled={!message.trim()}  // Disable button if message is empty or just whitespace
+        >
+          <Ionicons name="send" size={24} color={message.trim() ? "#007AFF" : "#ccc"} />
         </Pressable>
+
       </View>
     </KeyboardAvoidingView>
   );
@@ -93,30 +100,44 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    padding: 8,
-    marginVertical: 2,
-    backgroundColor: '#d1e7ff',
+    padding: 10,
+    margin: 5,
+    backgroundColor: 'green',
+    borderRadius: 10,
   },
   ownerMessage: {
     alignSelf: 'flex-start',
-    padding: 8,
-    marginVertical: 2,
-    backgroundColor: '#f0f0f0',
+    padding: 10,
+    margin: 5,
+    backgroundColor: '#A9A9A9',
+    borderRadius: 10,
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 8,
+    alignItems: 'center',
+    padding: 10,
     borderTopWidth: 1,
     borderColor: '#ddd',
+    backgroundColor: '#f9f9f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 2, // Shadow for Android
   },
   input: {
     flex: 1,
-    padding: 8,
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 25,
     borderWidth: 1,
     borderColor: '#ddd',
+    marginRight: 10,
+    fontSize: 16,
   },
   sendButton: {
-    padding: 8,
-    color: '#007AFF',
-  },
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
 });

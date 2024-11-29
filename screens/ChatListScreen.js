@@ -1,7 +1,8 @@
-import { collection, deleteDoc, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { getDocs, collection, deleteDoc, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View, Button } from 'react-native';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../firebase';
+import { MaterialCommunityIcons } from '@expo/vector-icons'; // For using icons
 
 const ChatListScreen = ({ navigation }) => {
   const [chatList, setChatList] = useState([]);
@@ -47,8 +48,8 @@ const ChatListScreen = ({ navigation }) => {
 
   const confirmDeletion = () => {
     Alert.alert(
-      'Delete Chat',
-      'Are you sure you want to delete the selected chat(s)?',
+      'Delete Chat(s)',
+      'Are you sure you want to delete the selected chat(s)? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: deleteSelectedChats },
@@ -57,7 +58,15 @@ const ChatListScreen = ({ navigation }) => {
   };
 
   const deleteSelectedChats = async () => {
-    const deletePromises = selectedChats.map((chatId) => deleteDoc(doc(db, 'messages', chatId)));
+    const deletePromises = selectedChats.map(async (chatId) => {
+      const chatMessagesRef = collection(db, 'messages', chatId, 'chat');
+      const querySnapshot = await getDocs(chatMessagesRef);
+      const deleteMessagesPromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      const chatDocRef = doc(db, 'messages', chatId);
+
+      await Promise.all([...deleteMessagesPromises, deleteDoc(chatDocRef)]);
+    });
+
     await Promise.all(deletePromises);
     setSelectedChats([]);
     setIsSelectionMode(false);
@@ -65,7 +74,7 @@ const ChatListScreen = ({ navigation }) => {
 
   const toggleSelectionMode = () => {
     setIsSelectionMode((prevMode) => !prevMode);
-    setSelectedChats([]); // Clear selection when entering/exiting selection mode
+    setSelectedChats([]);
   };
 
   const renderItem = ({ item }) => (
@@ -76,7 +85,7 @@ const ChatListScreen = ({ navigation }) => {
       <Text style={styles.chatName}>
         {item.participants.find((email) => email !== currentUserEmail)}
       </Text>
-      <Text style={styles.chatPreview}>{item.message || 'messages.'}</Text>
+      <Text style={styles.chatPreview}>{item.message || 'No messages yet.'}</Text>
     </TouchableOpacity>
   );
 
@@ -90,12 +99,17 @@ const ChatListScreen = ({ navigation }) => {
       />
       <View style={styles.footer}>
         {isSelectionMode ? (
-          <TouchableOpacity style={styles.deleteButton} onPress={confirmDeletion}>
-            <Text style={styles.deleteButtonText}>Delete Selected Chats</Text>
-          </TouchableOpacity>
+          <View style={styles.selectionFooter}>
+            <Text style={styles.selectionCount}>{selectedChats.length} Selected</Text>
+            <TouchableOpacity style={styles.deleteButton} onPress={confirmDeletion}>
+              <MaterialCommunityIcons name="trash-can-outline" size={24} color="#fff" />
+              <Text style={styles.deleteButtonText}>Delete Selected</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          <TouchableOpacity style={styles.deleteButton} onPress={toggleSelectionMode}>
-            <Text style={styles.deleteButtonText}>Select Chats to Delete</Text>
+          <TouchableOpacity style={styles.selectButton} onPress={toggleSelectionMode}>
+            <MaterialCommunityIcons name="checkbox-multiple-blank-outline" size={24} color="#fff" />
+            <Text style={styles.selectButtonText}>Select Chats to Delete</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -103,12 +117,10 @@ const ChatListScreen = ({ navigation }) => {
   );
 };
 
-export default ChatListScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#F5F5F5',
     padding: 16,
   },
   listContent: {
@@ -125,34 +137,64 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   selectedChatItem: {
-    backgroundColor: '#FFCDD2',
+    backgroundColor: '#FFEBEE',
   },
   chatName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: '#2C6B2F',
   },
   chatPreview: {
-    color: '#666',
+    color: '#555',
     marginTop: 4,
   },
   footer: {
     padding: 16,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#F5F5F5',
     borderTopWidth: 1,
-    borderTopColor: '#cccccc',
+    borderTopColor: '#E0E0E0',
     alignItems: 'center',
   },
-  deleteButton: {
-    backgroundColor: '#D32F2F',
-    padding: 16,
+  selectButton: {
+    flexDirection: 'row',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
     width: '100%',
+    justifyContent: 'center',
+  },
+  selectButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  selectionFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  selectionCount: {
+    fontSize: 16,
+    color: '#D32F2F',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    backgroundColor: '#D32F2F',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   deleteButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
+
+export default ChatListScreen;
